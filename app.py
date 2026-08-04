@@ -57,7 +57,8 @@ def procesar_login():
     flash("Usuario o contraseña incorrectos")
     return redirect(url_for("login"))
 
-#Usuario bloqueado por intentos fallidos
+#Después de los 4 intentos fallidos de inicio sesion, se debe bloquear la cuenta. 
+# Modificacion :Quitar el bloqueo de la cuenta y permitir que el usuario pueda iniciar sesion nuevamente.
 def bloqueo_por_intentos(usuario):
     conexion = get_connection()
     try:
@@ -66,27 +67,16 @@ def bloqueo_por_intentos(usuario):
                 "SELECT intentos_fallidos, ultimo_intento FROM Usuario WHERE usuario = %s", (usuario,)
             )
             fila = cursor.fetchone()
-
             if not fila:
                 return False  # Usuario no encontrado
-
             intentos_fallidos = fila["intentos_fallidos"]
             ultimo_intento = fila["ultimo_intento"]
 
-            if intentos_fallidos >= 3:
-                tiempo_actual = datetime.now()
-                tiempo_transcurrido = (tiempo_actual - ultimo_intento).total_seconds()
-
-                if tiempo_transcurrido < 300:  # 5 minutos
+            if intentos_fallidos >= 4:
                     return True  # Bloqueado
-                else:
-                    # Reiniciar contador de intentos fallidos después de 5 minutos
-                    cursor.execute(
-                        "UPDATE Usuario SET intentos_fallidos = 0 WHERE usuario = %s", (usuario,)
-                    )
-                    conexion.commit()
-                    return False
-
+            else:
+                cursor.execute( "UPDATE Usuario SET intentos_fallidos = 0 WHERE usuario = %s", (usuario,)) 
+                conexion.commit()
             return False
     finally:
         conexion.close()
