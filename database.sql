@@ -206,3 +206,5 @@ INSERT INTO Texto (tipo, contenido) VALUES
 select * from usuario;
 
 INSERT INTO Usuario Values (Null,'Eddi', 23,'Edch40s','12345*',now());
+
+DELETE from Usuario Where id=1;
