@@ -1,5 +1,10 @@
-__pycache__/config.cpython-313.pyc
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 
+# Configuración local
 config.py
-__pycache__/config.cpython-313.pyc
-config.py
+
+# Variables de entorno
+.env
