@@ -202,3 +202,7 @@ INSERT INTO Texto (tipo, contenido) VALUES
 ('plano', 'Leer con frecuencia amplia el vocabulario de una persona y mejora notablemente la forma en que se expresa tanto al hablar como al escribir. Combinar la lectura con la practica constante de escritura es una manera muy efectiva de fortalecer ambas habilidades al mismo tiempo, ya que una alimenta a la otra de forma natural. Quienes leen distintos tipos de textos, desde noticias hasta cuentos, suelen encontrar mas facil construir oraciones claras y variar el ritmo de lo que escriben. Ademas, la lectura frecuente entrena la mente para reconocer patrones en el lenguaje, lo cual tambien resulta util a la hora de escribir mas rapido y con menos errores.'),
 
 ('plano', 'La tecnologia ha cambiado por completo la manera en que las personas se comunican, trabajan y aprenden en su vida diaria. Hace apenas unas decadas, escribir una carta implicaba papel, tinta y varios dias de espera para recibir una respuesta, mientras que hoy un mensaje puede llegar a cualquier parte del mundo en cuestion de segundos. Esta rapidez trae grandes ventajas, pero tambien exige nuevas habilidades, como la capacidad de escribir con claridad y velocidad frente a un teclado. Las escuelas y empresas cada vez valoran mas estas competencias digitales, porque una comunicacion efectiva por escrito se ha vuelto una herramienta fundamental en casi cualquier tipo de trabajo.');
+
+select * from usuario;
+
+INSERT INTO Usuario Values (Null,'Eddi', 23,'Edch40s','12345*',now());
