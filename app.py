@@ -57,6 +57,39 @@ def procesar_login():
     flash("Usuario o contraseña incorrectos")
     return redirect(url_for("login"))
 
+#Usuario bloqueado por intentos fallidos
+def bloqueo_por_intentos(usuario):
+    conexion = get_connection()
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute(
+                "SELECT intentos_fallidos, ultimo_intento FROM Usuario WHERE usuario = %s", (usuario,)
+            )
+            fila = cursor.fetchone()
+
+            if not fila:
+                return False  # Usuario no encontrado
+
+            intentos_fallidos = fila["intentos_fallidos"]
+            ultimo_intento = fila["ultimo_intento"]
+
+            if intentos_fallidos >= 3:
+                tiempo_actual = datetime.now()
+                tiempo_transcurrido = (tiempo_actual - ultimo_intento).total_seconds()
+
+                if tiempo_transcurrido < 300:  # 5 minutos
+                    return True  # Bloqueado
+                else:
+                    # Reiniciar contador de intentos fallidos después de 5 minutos
+                    cursor.execute(
+                        "UPDATE Usuario SET intentos_fallidos = 0 WHERE usuario = %s", (usuario,)
+                    )
+                    conexion.commit()
+                    return False
+
+            return False
+    finally:
+        conexion.close()
 
 @app.route("/registro", methods=["GET", "POST"])
 def registro():
