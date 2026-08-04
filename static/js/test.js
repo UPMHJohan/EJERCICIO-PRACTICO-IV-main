@@ -1,5 +1,7 @@
 const datosTexto = JSON.parse(document.getElementById("texto-datos").textContent);
-const palabras = datosTexto.split(/\s+/).filter(Boolean);
+const oraciones = datosTexto.match(/[^.!?]+[.!?]+/g) || [datosTexto];
+let indiceOracion = 0;
+let palabras = []; // Contendrá las palabras de la oración actual
 
 const contenedorTexto = document.getElementById("texto-prueba");
 const entrada = document.getElementById("entrada-usuario");
@@ -123,9 +125,10 @@ function procesarPalabra() {
     barraProgreso.style.width = `${(indiceActual / palabras.length) * 100}%`;
 
     if (indiceActual >= palabras.length) {
-        finalizarPrueba();
-        return;
-    }
+    indiceOracion += 1;
+    cargarOracionActual(); // Pasa a la siguiente oración
+    return;
+}
 
     marcarPalabraActual();
 }
@@ -185,5 +188,15 @@ entrada.addEventListener("keydown", (evento) => {
     }
 });
 
-dibujarTexto();
+function cargarOracionActual() {
+    if (indiceOracion < oraciones.length) {
+        // Extrae las palabras únicamente de la oración que toca escribir
+        palabras = oraciones[indiceOracion].trim().split(/\s+/).filter(Boolean);
+        indiceActual = 0;
+        dibujarTexto();
+    } else {
+        finalizarPrueba();
+    }
+}
+cargarOracionActual();
 entrada.focus();
