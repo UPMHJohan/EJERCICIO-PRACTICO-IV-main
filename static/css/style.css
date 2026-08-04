@@ -373,6 +373,7 @@ h1 {
     font-size: 14px;
     color: var(--advertencia);
     font-weight: 700;
+    font-size: 3.5rem; font-weight: bold; color: #00f6ff;
 }
 
 .cuerpo-terminal {
