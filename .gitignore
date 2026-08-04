@@ -1,10 +1,1 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Configuración local
-config.py
-
-# Variables de entorno
-.env
+__pycache__/config.cpython-312.pyc
