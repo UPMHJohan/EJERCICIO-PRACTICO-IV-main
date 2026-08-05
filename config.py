@@ -5,7 +5,7 @@ from pymysql.cursors import DictCursor
 DB_CONFIG = {
     "host": "localhost",
     "user": "root",
-    "password": "12345678",
+    "password": "1234",
     "database": "mecanografia_db",
     "port": 3306,
     "cursorclass": DictCursor,
