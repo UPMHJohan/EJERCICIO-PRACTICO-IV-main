@@ -1,13 +1,12 @@
 import pymysql
 from pymysql.cursors import DictCursor
 
-# Ajusta estos datos según tu instalación de MySQL
 DB_CONFIG = {
-    "host": "mysql.railway.internal",
+    "host": "altaria.proxy.rlwy.net",
     "user": "root",
     "password": "lAaXBbnyvHpymCKwhPSEysGjNNdfrCUL",
-    "database": "mecanografia_db",  # <-- Cambiado a tu base de datos
-    "port": 3306,
+    "database": "mecanografia_db",  # Mantenemos la base de datos que creaste
+    "port": 27453,
     "cursorclass": DictCursor,
 }
 
