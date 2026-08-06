@@ -2,7 +2,16 @@ import random
 from datetime import datetime
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash,
+    jsonify,
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -15,7 +24,10 @@ EXTENSIONES_PERMITIDAS = {"txt", "py"}
 
 
 def archivo_permitido(nombre_archivo):
-    return "." in nombre_archivo and nombre_archivo.rsplit(".", 1)[1].lower() in EXTENSIONES_PERMITIDAS
+    return (
+        "." in nombre_archivo
+        and nombre_archivo.rsplit(".", 1)[1].lower() in EXTENSIONES_PERMITIDAS
+    )
 
 
 def login_requerido(vista):
@@ -41,45 +53,60 @@ def procesar_login():
     usuario = request.form.get("usuario", "").strip()
     contrasena = request.form.get("contrasena", "")
 
-    conexion = get_connection()
-    try:
-        with conexion.cursor() as cursor:
-            cursor.execute("SELECT * FROM Usuario WHERE usuario = %s", (usuario,))
-            fila = cursor.fetchone()
-    finally:
-        conexion.close()
+    # Limpiar cualquier residuo de sesión previa para evitar redirigir a /menu si la clave falla
+    session.clear()
 
-    if fila and check_password_hash(fila["contrasena"], contrasena):
-        session["usuario_id"] = fila["id"]
-        session["usuario"] = fila["usuario"]
-        return redirect(url_for("menu"))
-
-    flash("Usuario o contraseña incorrectos")
-    return redirect(url_for("login"))
-
-#Después de los 4 intentos fallidos de inicio sesion, se debe bloquear la cuenta. 
-# Modificacion :Quitar el bloqueo de la cuenta y permitir que el usuario pueda iniciar sesion nuevamente.
-def bloqueo_por_intentos(usuario):
     conexion = get_connection()
     try:
         with conexion.cursor() as cursor:
             cursor.execute(
-                "SELECT intentos_fallidos, ultimo_intento FROM Usuario WHERE usuario = %s", (usuario,)
+                "SELECT * FROM Usuario WHERE usuario = %s", (usuario,)
             )
             fila = cursor.fetchone()
-            if not fila:
-                return False  # Usuario no encontrado
-            intentos_fallidos = fila["intentos_fallidos"]
-            ultimo_intento = fila["ultimo_intento"]
 
-            if intentos_fallidos >= 4:
-                    return True  # Bloqueado
-            else:
-                cursor.execute( "UPDATE Usuario SET intentos_fallidos = 0 WHERE usuario = %s", (usuario,)) 
-                conexion.commit()
-            return False
+            if fila:
+                intentos = fila.get("intentos_fallidos", 0) or 0
+
+                # 1. Verificar si la cuenta ya se encuentra bloqueada (>= 4 intentos)
+                if intentos >= 4:
+                    flash(
+                        "Tu cuenta está bloqueada por haber superado el límite de 4 intentos fallidos."
+                    )
+                    return redirect(url_for("login"))
+
+                # 2. Validar contraseña
+                if check_password_hash(fila["contrasena"], contrasena):
+                    # Éxito: reiniciar contador de intentos fallidos a 0
+                    cursor.execute(
+                        "UPDATE Usuario SET intentos_fallidos = 0 WHERE id = %s",
+                        (fila["id"],),
+                    )
+                    conexion.commit()
+
+                    session["usuario_id"] = fila["id"]
+                    session["usuario"] = fila["usuario"]
+                    return redirect(url_for("menu"))
+                else:
+                    # Contraseña incorrecta: sumar 1 intento fallido y actualizar fecha/hora
+                    nuevos_intentos = intentos + 1
+                    cursor.execute(
+                        "UPDATE Usuario SET intentos_fallidos = %s, ultimo_intento = NOW() WHERE id = %s",
+                        (nuevos_intentos, fila["id"]),
+                    )
+                    conexion.commit()
+
+                    if nuevos_intentos >= 4:
+                        flash(
+                            "Has alcanzado el límite de 4 intentos fallidos. Tu cuenta ha sido bloqueada."
+                        )
+                        return redirect(url_for("login"))
+
     finally:
         conexion.close()
+
+    flash("Usuario o contraseña incorrectos")
+    return redirect(url_for("login"))
+
 
 @app.route("/registro", methods=["GET", "POST"])
 def registro():
@@ -98,13 +125,15 @@ def registro():
     conexion = get_connection()
     try:
         with conexion.cursor() as cursor:
-            cursor.execute("SELECT id FROM Usuario WHERE usuario = %s", (usuario,))
+            cursor.execute(
+                "SELECT id FROM Usuario WHERE usuario = %s", (usuario,)
+            )
             if cursor.fetchone():
                 flash("Ese nombre de usuario ya existe")
                 return redirect(url_for("registro"))
 
             cursor.execute(
-                "INSERT INTO Usuario (nombre, edad, usuario, contrasena) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO Usuario (nombre, edad, usuario, contrasena, intentos_fallidos) VALUES (%s, %s, %s, %s, 0)",
                 (nombre, edad, usuario, generate_password_hash(contrasena)),
             )
         conexion.commit()
@@ -141,7 +170,9 @@ def menu():
     finally:
         conexion.close()
 
-    return render_template("menu.html", usuario=session["usuario"], top_usuarios=top_usuarios)
+    return render_template(
+        "menu.html", usuario=session["usuario"], top_usuarios=top_usuarios
+    )
 
 
 @app.route("/personalizado", methods=["GET", "POST"])
@@ -151,7 +182,11 @@ def personalizado():
         return render_template("personalizado.html")
 
     archivo = request.files.get("archivo")
-    if not archivo or archivo.filename == "" or not archivo_permitido(archivo.filename):
+    if (
+        not archivo
+        or archivo.filename == ""
+        or not archivo_permitido(archivo.filename)
+    ):
         flash("Sube un archivo .txt o .py válido")
         return redirect(url_for("personalizado"))
 
@@ -174,7 +209,14 @@ def personalizado():
     finally:
         conexion.close()
 
-    return redirect(url_for("test", tipo="personalizado", texto_id=texto_id, nombre=nombre_archivo))
+    return redirect(
+        url_for(
+            "test",
+            tipo="personalizado",
+            texto_id=texto_id,
+            nombre=nombre_archivo,
+        )
+    )
 
 
 @app.route("/test/<tipo>")
@@ -190,10 +232,14 @@ def test(tipo):
     try:
         with conexion.cursor() as cursor:
             if texto_id:
-                cursor.execute("SELECT * FROM Texto WHERE id = %s", (texto_id,))
+                cursor.execute(
+                    "SELECT * FROM Texto WHERE id = %s", (texto_id,)
+                )
                 texto = cursor.fetchone()
             else:
-                cursor.execute("SELECT * FROM Texto WHERE tipo = %s", (tipo,))
+                cursor.execute(
+                    "SELECT * FROM Texto WHERE tipo = %s", (tipo,)
+                )
                 textos = cursor.fetchall()
                 texto = random.choice(textos) if textos else None
     finally:
@@ -209,7 +255,9 @@ def test(tipo):
         "personalizado": nombre_archivo or "personalizado.txt",
     }
 
-    return render_template("test.html", texto=texto["contenido"], titulo=titulos[tipo])
+    return render_template(
+        "test.html", texto=texto["contenido"], titulo=titulos[tipo]
+    )
 
 
 @app.route("/guardar_resultado", methods=["POST"])
